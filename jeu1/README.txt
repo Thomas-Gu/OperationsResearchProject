@@ -1,3 +1,5 @@
+Le jeu 1 est le jeu "Dominosa"
+
 Pour utiliser ce programme, se placer dans le répertoire ./src
 
 Les utilisations possibles sont les suivantes :
