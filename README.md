@@ -1,0 +1,1 @@
+Résolution des jeux : pavage de domino (jeu 1) et bridges (jeu 2)
