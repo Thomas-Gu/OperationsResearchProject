@@ -18,15 +18,42 @@ function readInputFile(inputFile::String)
     data = readlines(datafile)
     close(datafile)
 
-    # For each line of the input file
+    println(-------------------)
     for line in data
-
-        # TODO
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
-
+        println("| " * line * " |")
     end
+    println(-------------------)
 
 end
+
+
+"""
+Displays a solution (with dominos)
+- Arguments : 
+tab : game to solve
+domino : set of couples in the game
+"""
+
+function disp_sol(tab::Array{Int, 2}, domino::Array{Int, 4})
+    
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 """
