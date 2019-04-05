@@ -13,6 +13,16 @@ function cplexSolve()
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
 
+
+    ## dominos
+    domino = Array{Int, 3}([1:n, 1:n, 1:4]) # PB
+    println(domino)
+    # domino[i, j, :] = [0, 1, 0, 0]
+    # Signifie que la case i, j est dominotée avec le domino i, j + 1. CF : ([(i, j-1), (i, j+1), (i-1, j), (i+1, j)])
+    
+
+
+
     # TODO
     println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 
