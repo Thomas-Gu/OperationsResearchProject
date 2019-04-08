@@ -15,7 +15,7 @@ this function generates an array which corresponds to the grid to be paved
 """
 
 	"cette grille représente la grille à paver"	
-	grille = Array{Int64}(undef, n+1, n+2)
+	grille = zeros(n+1,n+2)
 	"remplissage[i] = nbr de fois que le chiffre i a été placé dans la grille"
 	remplissage = zeros(n+1)
 	"probabilité de placer i à l'instant t"
@@ -25,14 +25,15 @@ this function generates an array which corresponds to the grid to be paved
 		for nc in 1:(n+2)
 			p = rand()
 			i = 0
-			seuil=proba[0]
+			seuil=proba[1]
 			while p>seuil
 				i = i+1
 				seuil = seuil+proba[i]
 			end	
-			grille[nl][nc] = i
-			proba[i] = proba[i] - 1/((n+1)*(n+2))
-			proba= proba + 1/((n+1)*(n+1)*(n+2))
+			grille[nl,nc] = i
+			proba[i+1] = proba[i+1] - 1/((n+1)*(n+2))
+			proba= proba + 1/((n+1)*(n+1)*(n+2))*ones(n+1)
+			"Normaliser différement les probas : diviser plutôt qu'additioner"
 		end
 	end
 	return grille
@@ -40,6 +41,7 @@ this function generates an array which corresponds to the grid to be paved
     
 end 
 
+println(generateInstance(6))
 """
 Generate all the instances
 
