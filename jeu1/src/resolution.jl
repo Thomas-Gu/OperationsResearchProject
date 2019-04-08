@@ -8,18 +8,47 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(t::Array{Int, 2})
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
+    n = Int(size(t, 1)) - 1
 
-
-    ## dominos
-    domino = Array{Int, 3}([1:n, 1:n, 1:4]) # PB
-    println(domino)
+      
     # domino[i, j, :] = [0, 1, 0, 0]
-    # Signifie que la case i, j est dominotée avec le domino i, j + 1. CF : ([(i, j-1), (i, j+1), (i-1, j), (i+1, j)])
+    # Signifie que la case i, j est dominotée avec le domino i, j + 1. 
+    # CF : ([(i, j-1), (i, j+1), (i-1, j), (i+1, j)])
+    @variable(m, domino[1:n+1, 1:n+2, 1:4], Bin)
+    @variable(m, dominos_poss[1:3, 1:28], Bin) #28 dominos différents
     
+    # Contraintes des dominos possibles
+    @constraint(m, dominos_poss[1, 1:7] == zeros(Int, 7))
+    @constraint(m, dominos_poss[1, 8:13] == ones(Int, 6))
+    @constraint(m, dominos_poss[1, 14:18] == ones(Int, 5) * 2)
+    @constraint(m, dominos_poss[1, 19:22] == ones(Int, 4) * 3)
+    @constraint(m, dominos_poss[1, 23:25] == ones(Int, 3) * 4)
+    @constraint(m, dominos_poss[1, 25:27] == ones(Int, 2) * 5)
+    @constraint(m, dominos_poss[1, 28] == ones(Int, 1) * 6)
+
+
+    # Contrainte de non superposition
+    for i in 1:n+1
+        for j in 1:n+2
+            @constraint(m, sum(domino[i, j, k] for k in 1:4) <= 1) # Un seul domino par case
+        end
+    end
+
+
+    # Contrainte de dominotage
+    for i in 2:n
+        for j in 2:n+1
+            @constraint(m, domino[i, j, 1] == domino[i, j-1, 2]) # Les deux chiffres du domino
+            @constraint(m, domino[i, j, 2] == domino[i, j+1, 1]) # sont dominotés ensemble
+            @constraint(m, domino[i, j, 3] == domino[i-1, j, 4])
+            @constraint(m, domino[i, j, 4] == domino[i+1, j, 3])
+        end
+    end
+
 
 
 
