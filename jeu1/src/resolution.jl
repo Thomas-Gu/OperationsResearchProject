@@ -12,23 +12,31 @@ function cplexSolve(t::Array{Int, 2})
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
-    n = Int(size(t, 1)) - 1
+    n = Int(size(t, 1)) - 1 # 
 
       
     # domino[i, j, :] = [0, 1, 0, 0]
     # Signifie que la case i, j est dominotée avec le domino i, j + 1. 
     # CF : ([(i, j-1), (i, j+1), (i-1, j), (i+1, j)])
-    @variable(m, domino[1:n+1, 1:n+2, 1:4], Bin)
-    @variable(m, dominos_poss[1:3, 1:28], Bin) #28 dominos différents
+    @variable(m, domino[1:n+1, 1:n+2, 0:4], Bin)
+    @variable(m, dominos_poss[1:3, 1:floor(Int, (n+1 * (n+2)) / 2)], Bin) #28 dominos différents pour n = 6
     
+
     # Contraintes des dominos possibles
-    @constraint(m, dominos_poss[1, 1:7] == zeros(Int, 7))
-    @constraint(m, dominos_poss[1, 8:13] == ones(Int, 6))
-    @constraint(m, dominos_poss[1, 14:18] == ones(Int, 5) * 2)
-    @constraint(m, dominos_poss[1, 19:22] == ones(Int, 4) * 3)
-    @constraint(m, dominos_poss[1, 23:25] == ones(Int, 3) * 4)
-    @constraint(m, dominos_poss[1, 25:27] == ones(Int, 2) * 5)
-    @constraint(m, dominos_poss[1, 28] == ones(Int, 1) * 6)
+    debut = 1
+    n_domino_i = n + 1 
+    for i in 0:n
+        @constraint(m, dominos_poss[1, debut:(debut + n_domino_i - 1)] == zeros(Int, n_domino_i) * i)
+        debut = debut + n_domino_i
+        n_domino_i = n - i
+    end
+
+    # Contrainte d'initialisation
+    for i in 1:n+1
+        for j in 1:n+2
+            @constraint(m, domino[i, j, 0] == t[i, j]) # Lecture de valeur générée
+        end
+    end
 
 
     # Contrainte de non superposition
@@ -39,21 +47,69 @@ function cplexSolve(t::Array{Int, 2})
     end
 
 
-    # Contrainte de dominotage
+    # Contraintes intérieures de dominotage des deux chiffres du domino
     for i in 2:n
         for j in 2:n+1
-            @constraint(m, domino[i, j, 1] == domino[i, j-1, 2]) # Les deux chiffres du domino
-            @constraint(m, domino[i, j, 2] == domino[i, j+1, 1]) # sont dominotés ensemble
-            @constraint(m, domino[i, j, 3] == domino[i-1, j, 4])
-            @constraint(m, domino[i, j, 4] == domino[i+1, j, 3])
+            # 4 Coins
+            
+            if i == 0 and j == 0 
+            elseif i == 0 and j == n+2 
+            elseif i == n+1 and j == 0
+            elseif i == n+1 and j == n+2
+            
+            # 4 Bords
+            elseif i == 0 and j < n+2 and j > 0
+            elseif i == n+1 and j < n+2 and j > 0
+            elseif i < n+1 and j == 0
+            else
+                @constraint(m, domino[i, j, 1] == domino[i, j-1, 2]) # Les deux chiffres du domino
+                @constraint(m, domino[i, j, 2] == domino[i, j+1, 1]) # sont dominotés ensemble
+                @constraint(m, domino[i, j, 3] == domino[i-1, j, 4])
+                @constraint(m, domino[i, j, 4] == domino[i+1, j, 3])
+            end
         end
     end
 
+    # Contraintes Bords haut et bas
+    for j in 2:n+1
+        @constraint(m, domino[0, j, 1] == domino[0, j-1, 2]) # Les deux chiffres du domino sont dominotés ensemble
+        @constraint(m, domino[0, j, 2] == domino[0, j+1, 1])
+        @constraint(m, domino[0, j, 4] == domino[1, j, 3])
+
+        @constraint(m, domino[n+1, j, 1] == domino[n+1, j-1, 2])
+        @constraint(m, domino[n+1, j, 2] == domino[n+1, j+1, 1])
+        @constraint(m, domino[n+1, j, 3] == domino[n, j, 4]) 
+    end
+
+    # Contraintes Bords droit et gauche
+    for i in 2:n
+         # Les deux chiffres du domino
+        @constraint(m, domino[i, 0, 2] == domino[i, 1, 1]) # sont dominotés ensemble
+        @constraint(m, domino[i, 0, 3] == domino[i-1, 0, 4])
+        @constraint(m, domino[i, 0, 4] == domino[i+1, 0, 3]) 
+
+        @constraint(m, domino[i, n+2, 1] == domino[i, n+1, 2])
+        @constraint(m, domino[i, n+2, 3] == domino[i-1, n+2, 4])
+        @constraint(m, domino[i, n+2, 4] == domino[i+1, n+2, 3])
+    end
+
+    # 4 Coins
+    # Coins hauts
+    @constraint(m, domino[0, 0, 2] == domino[0, 1, 1]) # gauche
+    @constraint(m, domino[0, 0, 4] == domino[1, 0, 3])
+
+    @constraint(m, domino[0, n+2, 1] == domino[0, n+1, 2]) #droit
+    @constraint(m, domino[0, n+2, 4] == domino[1, j, 3])
+
+    # Coins bas
+    @constraint(m, domino[n+1, 0, 2] == domino[n+1, 1, 1]) #gauche
+    @constraint(m, domino[n+1, 0, 3] == domino[n, 0, 4])
+
+    @constraint(m, domino[n+1, n+2, 1] == domino[n+1, n+1, 2]) #droit
+    @constraint(m, domino[n+1, n+2, 3] == domino[n, n+2, 4])
 
 
-
-    # TODO
-    println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
+    @objective(m, Max, sum(sum(sum(domino[i, j, k] for k in 1:4) for)
 
     # Start a chronometer
     start = time()
