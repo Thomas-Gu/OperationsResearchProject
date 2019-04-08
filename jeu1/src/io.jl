@@ -18,11 +18,11 @@ function readInputFile(inputFile::String)
     data = readlines(datafile)
     close(datafile)
 
-    println(-------------------)
+    println("-------------------")
     for line in data
         println("| " * line * " |") # Affichage sous forme de tableau
     end
-    println(-------------------)
+    println("-------------------")
 
 end
 
@@ -36,7 +36,7 @@ domino : set of couples in the game
 
 function disp_sol(tab::Array{Int, 2}, domino::Array{Int, 4})
     n, m = size(tab, 1), size(tab, 2)
-    println(-------------------)
+    println("-------------------")
     for i in 1:n
         println("| ")
         for j in 1:n
@@ -48,7 +48,7 @@ function disp_sol(tab::Array{Int, 2}, domino::Array{Int, 4})
         end
         println(" |")
     end
-    println(-------------------)
+    println("-------------------")
 end
 
 
