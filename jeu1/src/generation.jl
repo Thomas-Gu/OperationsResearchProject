@@ -42,8 +42,7 @@ this function generates an array which corresponds to the grid to be paved
 		end
 	end
 	return grille
-    println("In file generation.jl, in method generateInstance(), TODO: generate an instance")
-    
+    println("In file generation.jl, in method generateInstance(), TODO: generate an instance") 
 end 
 
 println(generateInstance(4))
@@ -55,16 +54,34 @@ Remark: a grid is generated only if the corresponding output file does not alrea
 
 
 
-function generateDataSet(Array{Int64})
+function generateDataSet(grid::Array{Int64})
 """
 This function takes as an argument the array previously generated.
 This function returns a .txt file containing all the informations
 """
-
+	res= ""
+	nl = size(grid, 1) 
+	nc = size(grid, 2)
+	for i in 1:nl
+		for j in 1:nc
+			res = res*string(grid[nl,nc])
+			if j<nc
+				res = res*" "
+			else
+				res = res*"\n"
+			end
+		end
+	end
+	myFile = open("output.txt", "w")
+	# Ecrire "test" dans ce fichier
+	println(fout, "res")
+	close(fout)
     # TODO
     println("In file generation.jl, in method generateDataSet(), TODO: generate an instance")
     
 end
+
+
 
 
 
