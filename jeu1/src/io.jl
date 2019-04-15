@@ -34,21 +34,52 @@ tab : game to solve
 domino : set of couples in the game
 """
 
-function disp_sol(tab::Array{Int, 2}, domino::Array{Int, 4})
-    n, m = size(tab, 1), size(tab, 2)
-    println("-------------------")
-    for i in 1:n
-        println("| ")
-        for j in 1:n
-            if domino[i, j, i, j-1] == 1
-                println("  " * string(tab[i, j]))
+function disp_sol(solution::Array{Int, 3})
+    n = size(solution, 1) - 1
+    if size(solution, 2) != n + 2 || size(solution, 3) != 5
+        println("ERREUR : revoir dimensions de l'argument")
+        return
+    end
+
+    for j in 1:2 * (n+2) + 1 # Tout début
+        print("-")
+    end
+    print("\n")
+
+    for i in 1:n+1
+        print("|" * string(solution[i, 1, 1]))
+
+        for j in 2:n+2
+            if solution[i, j, 2] == 1 # solution[i, j, :] = [valeur, (j-1), (j+1), (i-1), (i+1)]
+                print(" " * string(solution[i, j, 1]))
             else
-                println("| " * string(tab[i, j]))
+                print("|" * string(solution[i, j, 1]))
             end
         end
-        println(" |")
+        print("|\n")
+        
+        if i < n+1
+            print("|")
+            for j in 1:n+2
+                if j < n+2 && solution[i, j, 5] == 1 # solution[i, j, :] = [valeur, (j-1), (j+1), (i-1), (i+1)]
+                    print(" -")
+                elseif j == n+2 && solution[i, j, 5] == 1
+                    print(" ")
+                elseif j == n+2 && solution[i, j, 5] != 1
+                    print("-")
+                else
+                    print("--")
+                end
+            end
+        
+            print("|\n")
+        end
+
     end
-    println("-------------------")
+
+    for j in 1:2 * (n+2) + 1 # Toute fin
+        print("-")
+    end
 end
 
 
