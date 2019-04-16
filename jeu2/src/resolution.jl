@@ -2,19 +2,59 @@
 using CPLEX
 
 include("generation.jl")
-
+include("io.jl")
 TOL = 0.00001
+"""
+On suppose que le plateau est donné sous la forme d'un Array de n lignes (nombre de points) et de 3 colonnes
+
+"""
+t = [
+	2 1 1 ;
+	4 1 3 ;
+	1 4 2 ;
+	4 4 4 ]
+	
 
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(t::Array{Int, 2})
+
+	#nombre de lignes de t, càd nombre de points à connecter
+	n = size(t, 1)
 
     # Create the model
     m = Model(with_optimizer(CPLEX.Optimizer))
+	@variable(m,connexions[1:n,1:n] >= 0, Int)
 
-    # TODO
-    println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
+	
+	# Contrainte de symétrie de la matrice des connexions
+	for i in 1:n
+		@constraint(m, [j in 1:n], connexions[i,j] = connexions[j,i])
+	end
+
+	# Contrainte de remplissage des capacités
+	@constraint(m, [i in 1:n], sum(connexions[i,j] for j in i:n) == t[i,3])
+
+
+	# Contrainte de non-connexion en diagonale
+	
+
+	# Contrainte de non-croisement
+
+
+	# Contrainte de nombre de ponts limité à deux
+	for i in 1:n
+		@constraint(m, [j in 1:n], connexions[i,j] <= 2)
+	end
+
+
+	# Contrainte de connexité
+
+	
+	# Objectif
+	@objective(m,Max,0)
+	
 
     # Start a chronometer
     start = time()
