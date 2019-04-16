@@ -15,7 +15,7 @@ this function generates an array which corresponds to the grid to be paved
 """
 
 	"cette grille représente la grille à paver"	
-	grille = zeros(n+1,n+2)
+	grille = zeros(Int, n+1,n+2)
 	"probabilité de placer i à l'instant t"
 	proba = ones(n+1)*(1/(n+1))
 	"n_t[i] = nbr de fois que le chiffre i a été placé dans la grille à l'instant t"
@@ -38,8 +38,7 @@ this function generates an array which corresponds to the grid to be paved
 			end	
 			grille[nl,nc] = Int64(i-1)
 			n_t[i] = n_t[i] + 1
-			t = t + 1
-			println(typeof(i))			
+			t = t + 1			
 		end
 	end
 	
