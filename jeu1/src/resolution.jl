@@ -34,8 +34,9 @@ function cplexSolve(t::Array{Int, 2})
     # Modèle et variables de calcul
         m = Model(with_optimizer(CPLEX.Optimizer))
 
-        n = Int(size(t, 1)) - 1 
+        n = Int(size(t, 1)) - 1
         n_domino = floor(Int, (((n+1) * (n+2)) * 0.5))
+
 
     # Variables d'optimisation
         # domino[i, j, :] = [valeur, (j-1), (j+1), (i-1), (i+1)]
@@ -45,12 +46,23 @@ function cplexSolve(t::Array{Int, 2})
     
     # Contraintes des dominos possibles
         debut = 1
-        n_domino_i = n + 1 
-        for i in 0:n
-            @constraint(m, dominos_poss[1, debut:(debut + n_domino_i - 1)] .== ones(Int, n_domino_i) * i)
-            @constraint(m, dominos_poss[2, debut:(debut + n_domino_i - 1)] .== [j for j in i:n])
+        n_domino_i = n + 1
+
+        for i in 0:n #boucle sur les chiffres des dominos
+
+            for j in debut:(debut + n_domino_i - 1)
+                @constraint(m, dominos_poss[1, j] == i) #on a n_domino_i premiers chiffres constants
+                @constraint(m, dominos_poss[2, j] == j - debut + i) #chacun associés avec des chiffres variables
+                #@show j-debut+i
+            end
+
             debut = debut + n_domino_i
-            n_domino_i = n - i
+            n_domino_i = n_domino_i - 1
+            #@show debut:(debut + n_domino_i - 1)
+
+            if n_domino_i == 0
+                break
+            end
         end
 
     # Contrainte d'initialisation
@@ -64,7 +76,7 @@ function cplexSolve(t::Array{Int, 2})
     # Contrainte de non superposition
         for i in 1:n+1
             for j in 1:n+2
-                @constraint(m, sum(domino[i, j, k] for k in 2:5) == 1) # Un seul domino par case
+                @constraint(m, sum(domino[i, j, k] for k in 2:5) == 1) # Exactement un seul domino par case
             end
         end
 
@@ -72,11 +84,11 @@ function cplexSolve(t::Array{Int, 2})
 
     # Contrainte de comptage d'un domino
         for i in 1:n_domino
-            @constraint(m, dominos_poss[3, i] == sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1) )
+            @constraint(m, dominos_poss[3, i] == 0.5 * sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1))
         end
 
         # Explication de la contrainte de comptage :
-                # @constraint(m, dominos_poss[3, i] == sum(sum(sum(  domino[l,j,k] for k in 2:5 #On somme, si le domino considéré dans dominos_poss à la position i est bien dominoté quelque part dans le tableau
+                # @constraint(m, dominos_poss[3, i] == 0.5 * sum(sum(sum(  domino[l,j,k] for k in 2:5 #On somme, si le domino considéré dans dominos_poss à la position i est bien dominoté quelque part dans le tableau (et on divise par deux car on compte deux fois !)
                 # if (
                 #         (
                 #             (domino[l,j,1] == dominos_poss[1, i]) 
@@ -127,19 +139,19 @@ function cplexSolve(t::Array{Int, 2})
                 @constraint(m, domino[1, j, 2] == domino[1, j-1, 3]) 
                 @constraint(m, domino[1, j, 3] == domino[1, j+1, 2])
                 @constraint(m, domino[1, j, 4] == 0) # le domino en 0,j n'existe pas, on ne peut pas se lier à lui
-                @constraint(m, domino[1, j, 5] == domino[1, j, 4])
+                @constraint(m, domino[1, j, 5] == domino[2, j, 4])
 
                 @constraint(m, domino[n+1, j, 2] == domino[n+1, j-1, 3])
-                @constraint(m, domino[n+1, j, 3] == domino[n+1, j+1, 4])
+                @constraint(m, domino[n+1, j, 3] == domino[n+1, j+1, 2])
                 @constraint(m, domino[n+1, j, 4] == domino[n, j, 5])
-                @constraint(m, domino[n+1, j, 5] == 0) # le domino en n+2,1 n'existe pas, on ne peut pas se lier à lui
+                @constraint(m, domino[n+1, j, 5] == 0) # le domino en n+2,j n'existe pas, on ne peut pas se lier à lui
             end
 
         # Contraintes Bords droit et gauche
             for i in 2:n
                 @constraint(m, domino[i, 1, 2] == 0)
-                @constraint(m, domino[i, 1, 3] == domino[i, 1, 2])
-                @constraint(m, domino[i, 1, 4] == domino[i-1, 1, 3])
+                @constraint(m, domino[i, 1, 3] == domino[i, 2, 2])
+                @constraint(m, domino[i, 1, 4] == domino[i-1, 1, 5])
                 @constraint(m, domino[i, 1, 5] == domino[i+1, 1, 4]) 
 
                 @constraint(m, domino[i, n+2, 2] == domino[i, n+1, 3])
@@ -174,9 +186,12 @@ function cplexSolve(t::Array{Int, 2})
 
     
     
-    # Contrainte de non répétition d'un domino
+    # Contrainte de non répétitzeros(Int, n+1, n+2, 5)d'un domino
         for i in 1:n_domino
-            @constraint(m, dominos_poss[3, i] <= 1) # non répétition d'un domino ET tous les dominos sont représentés
+            # non répétition d'zeros(Int, n+1, n+2, 5)omino :
+            # @constraint(m, sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1) <= 1) 
+            # non répétition d'un domino ET tous les dominos sont représentés
+            @constraint(m, sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1) == 1) 
         end
     
             
@@ -195,25 +210,37 @@ function cplexSolve(t::Array{Int, 2})
         # 1 - true if an optimum is found
         # 2 - the resolution time
 
-        solution = zeros(Int, n+1, n+2, 5)
+        domino_val = zeros(Int, n+1, n+2, 5)
         for i in 1:n+1
             for j in 1:n+2
                 for k in 1:5
-                    solution[i,j,k] = JuMP.value(domino[i,j,k])
+                    domino_val[i,j,k] = JuMP.value(domino[i,j,k])
                 end
             end
         end
 
+        dominos_poss_val = zeros(Int, 3, n_domino)
+        for i in 1:n_domino
+            for k in 1:2
+                dominos_poss_val[k,i] = JuMP.value(dominos_poss[k,i])
+            end
+            #dominos_poss_val[3,i] = sum(sum(sum(  domino_val[l,j,k] for k in 2:5 if (((domino_val[l,j,1] == dominos_poss_val[1, i]) && ((k == 2 && j > 1 && domino_val[l,j-1,1] == dominos_poss_val[2, i]) || (k == 3 && j < n+2 && domino_val[l,j+1,1] == dominos_poss_val[2, i]) || (k == 4 && l > 1 && domino_val[l-1,j,1] == dominos_poss_val[2, i]) || (k == 5 && l < n+1 && domino_val[l+1,j,1] == dominos_poss_val[2, i]) )) || (   (domino_val[l,j,1] == dominos_poss_val[2, i]) && ((k == 2 && j > 1 && domino_val[l,j-1,1] == dominos_poss_val[1, i]) || (k == 3 && j < n+1 && domino_val[l,j+1,1] == dominos_poss_val[1, i]) || (k == 4 && l > 1 && domino_val[l-1,j,1] == dominos_poss_val[1, i]) || (k == 5 && l < n+1 && domino_val[l+1,j,1] == dominos_poss_val[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1)
+        end
+        
 
-    return solution
+
+
+
+    return solution, dominos_poss_val
     
 end
 
 
-solution = cplexSolve(t)
+solution, domi = cplexSolve(t)
 disp_sol(solution)
-print("\n\n", solution)
-
+print("\n\n", domi[1, :])
+print("\n", domi[2, :])
+print("\n", domi[3, :])
 
 
 # """
