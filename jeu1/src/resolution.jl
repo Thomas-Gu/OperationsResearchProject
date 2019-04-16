@@ -186,9 +186,9 @@ function cplexSolve(t::Array{Int, 2})
 
     
     
-    # Contrainte de non répétitzeros(Int, n+1, n+2, 5)d'un domino
+    # Contrainte de non répétition d'un domino
         for i in 1:n_domino
-            # non répétition d'zeros(Int, n+1, n+2, 5)omino :
+            # non répétition d'un domino :
             # @constraint(m, sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1) <= 1) 
             # non répétition d'un domino ET tous les dominos sont représentés
             @constraint(m, sum(sum(sum(  domino[l,j,k] for k in 2:5 if (((domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i]) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i]) )) || (   (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i]) || (k == 3 && j < n+1 && domino[l,j+1,1] == dominos_poss[1, i]) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i]) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i]) )))) for j in 1:n+2 ) for l in 1:n+1) == 1) 
@@ -196,10 +196,6 @@ function cplexSolve(t::Array{Int, 2})
     
             
 
-    
-    # Objectif
-        #@objective(m, Max, sum(sum(sum(domino[i, j, k] for k in 1:5) for j in 1:n+2) for i in 1:n+1) - ((n+1)*(n+2)))
-    
     #Start a chronometer
     start = time()
 
@@ -210,7 +206,7 @@ function cplexSolve(t::Array{Int, 2})
         # 1 - true if an optimum is found
         # 2 - the resolution time
 
-        domino_val = zeros(Int, n+1, n+2, 5)
+        domino_val = zeros(n+1, n+2, 5)
         for i in 1:n+1
             for j in 1:n+2
                 for k in 1:5
@@ -219,7 +215,7 @@ function cplexSolve(t::Array{Int, 2})
             end
         end
 
-        dominos_poss_val = zeros(Int, 3, n_domino)
+        dominos_poss_val = zeros(3, n_domino)
         for i in 1:n_domino
             for k in 1:2
                 dominos_poss_val[k,i] = JuMP.value(dominos_poss[k,i])
@@ -236,7 +232,7 @@ function cplexSolve(t::Array{Int, 2})
 end
 
 
-solution, domi = cplexSolve(t)
+solution, domi = cplexSolve(t1)
 disp_sol(solution)
 print("\n\n", domi[1, :])
 print("\n", domi[2, :])
