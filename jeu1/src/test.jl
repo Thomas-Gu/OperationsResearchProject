@@ -68,7 +68,8 @@ function dominos_solve_test(t::Array{Int, 2})
 
     disp_sol(domino)
 
-    compteur = 0
+    compteur1 = 0
+    compteur2 = 0
     for i in 1:n_domino
         println(dominos_poss[1:2,i])
         for j in 1:n+2
@@ -77,61 +78,71 @@ function dominos_solve_test(t::Array{Int, 2})
                 for k in 2:5
                     if (domino[l,j,1] == dominos_poss[1, i]) 
                         if (k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 )
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         elseif (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         elseif (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         elseif (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         end
 
                     elseif (domino[l,j,1] == dominos_poss[2, i])
                         if (k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         
                         elseif (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
 
                         elseif (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
 
                         elseif (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
-                            compteur += 1
-                            @show i, j, l, k
+                            compteur1 += 1
+                            #@show i, j, l, k
                         end
                     end
                 end
             end
         end
-        dominos_poss[3, i] = compteur * 0.5
-        compteur = 0
+        compteur2 = 
+        sum(
+            sum(
+                reduce(+, 
+                1 for k in 2:5 
+                if ((domino[l,j,1] == dominos_poss[1, i]) && (
+                        (k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 )
+                        || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 )
+                        || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) 
+                        || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) ))
+
+                    || (
+                        (domino[l,j,1] == dominos_poss[2, i]) && (
+                            (k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
+                            || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
+                            || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) 
+                            || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) )
+                        ); init = 0) 
+            for l in 1:n+1) 
+        for j in 1:n+2)
+
+        #dominos_poss[3, i] = compteur1 * 0.5
+        dominos_poss[3, i] = compteur2 * 0.5
+        @show compteur1
+        @show compteur2
+        compteur1 = 0
+        compteur2 = 0
     end
 
-    compteur = 0
-    for i in 1:n_domino
-        compteur = sum(sum(reduce(+, domino[l,j,k] for k in 2:5 if (domino[l,j,1] == dominos_poss[1, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[2, i] && domino[l,j,k] == 1 ) || (domino[l,j,1] == dominos_poss[2, i]) && ((k == 2 && j > 1 && domino[l,j-1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) || (k == 3 && j < n+2 && domino[l,j+1,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) || (k == 4 && l > 1 && domino[l-1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) || (k == 5 && l < n+1 && domino[l+1,j,1] == dominos_poss[1, i] && domino[l,j,k] == 1 ) )); init = 0) for l in 1:n+1) for j in 1:n+2)
-        
-        println(dominos_poss[1:2,i])
-        @show(compteur)
-        #dominos_poss[3, i] = compteur * 0.5
-        compteur = 0
-    end
-
-
-
-
-    @show compteur
-    println(dominos_poss[1,:])
-    println(dominos_poss[2,:])
-    println(dominos_poss[3,:])
+    return(dominos_poss[3, :])
 end
 
-dominos_solve_test(t_3)
+dominos_poss = dominos_solve_test(t_3)
+@show dominos_poss
