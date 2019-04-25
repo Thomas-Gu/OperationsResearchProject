@@ -5,6 +5,22 @@ using Plots
 import GR
 
 """
+On suppose que le plateau est donné sous la forme d'un Array de n lignes (nombre de points) et de 3 colonnes
+Colonne1 : abscisse
+Colonne2 : ordonnée
+Colonne3 : Capacité
+
+"""
+t = [
+	2 1 1 ;
+	4 1 3 ;
+	1 4 2 ;
+    4 4 4 ]
+    
+
+
+
+"""
 Read an instance from an input file
 
 - Argument:
@@ -18,15 +34,47 @@ function readInputFile(inputFile::String)
     data = readlines(datafile)
     close(datafile)
 
-    # For each line of the input file
+    println("-------------------")
     for line in data
-
-        # TODO
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
-
+        point = split(line, " ") # Crée un tableau de la forme ["2", "1", "1"]
+        x = parse(Int, point[1])
+        y = parse(Int, point[2])
+        cap = parse(Int, point[3])
+        plot(x, y, color = "blue", linewidth = 2.0, linestyle = "o")
+        println("| " * line * " |") # Affichage sous forme de tableau
     end
+    println("-------------------")
 
 end
+
+
+"""
+Read an instance resolution
+
+- Argument:
+inputFile: path of the input file
+"""
+function readInputFile(solution::Array{Int})
+
+    # Open the input file
+    datafile = open(inputFile)
+
+    data = readlines(datafile)
+    close(datafile)
+
+    println("-------------------")
+    for line in data
+        point = split(line, " ") # Crée un tableau de la forme ["2", "1", "1"]
+        x = parse(Int, point[1])
+        y = parse(Int, point[2])
+        cap = parse(Int, point[3])
+        plot(x, y, color = "blue", linewidth = 2.0, linestyle = "o")
+        println("| " * line * " |") # Affichage sous forme de tableau
+    end
+    println("-------------------")
+
+end
+
 
 
 """
