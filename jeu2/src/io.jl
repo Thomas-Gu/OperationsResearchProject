@@ -62,7 +62,7 @@ function readInputFile(inputFile::String)
 
 end
 
-#readInputFile("../data/test2.dat")
+#readInputFile("../data/test3.dat")
 
 """
 Read an instance resolution

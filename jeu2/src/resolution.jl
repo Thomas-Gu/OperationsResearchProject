@@ -29,7 +29,25 @@ t_1 = [
     4 7 6 ;
     7 7 4 ]
 
-"""
+t_2 = [
+    1 1 2 ;
+    4 1 1 ;
+    7 1 3 ;
+    1 3 5 ;
+    7 3 4 ;
+    2 4 1 ;
+    4 4 3 ;
+    6 4 2 ;
+    7 5 2 ;
+    1 6 4 ;
+    4 6 4 ;
+    6 6 2 ;
+    5 7 2 ;
+    7 7 3]
+
+
+
+    """
 Solve an instance with CPLEX
 """
 function cplexSolve(t::Array{Int, 2})
@@ -152,28 +170,28 @@ end
 """
 Heuristically solve an instance
 """
-function affich(message::String, affich_bool::Bool)
+function affich(message::String, affich_bool::Bool) # Jute pour éviter d'avoir un affichage immense
     if affich_bool
         println(message)
     end
 end
 
-function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Array{Int, 2}, nbr_ponts::Array{Int, 1}, solve::Bool, erreur::Bool, affich_heuris::Bool)
+function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Array{Int, 2}, nbr_ponts::Array{Int, 1}, testes_heuris::Array{Int, 2}, solve::Bool, erreur::Bool, affich_heuris::Bool)
     affich_ponts_poss = false
     
     affich("\nAPPEL : heuristicSolve", affich_heuris)
     if solve # On a réolu le problème
-        return cas, ponts, ponts_poss, nbr_ponts, true, false
+        return cas, ponts, ponts_poss, nbr_ponts, testes_heuris, true, false, affich_heuris
         
     else   
         # Temporaire !
         if erreur
-            return cas, ponts, ponts_poss, nbr_ponts, false, true
+            return cas, ponts, ponts_poss, nbr_ponts, testes_heuris, false, true, affich_heuris
         end
 
         n = size(cas, 1) # Nombre de noeuds à connecter
 
-        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, affich_ponts_poss) # Calcul des possibilités
+        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, testes_heuris, affich_ponts_poss) # Calcul des possibilités
 
         ajout = true # Pour le premier passage
 
@@ -203,7 +221,7 @@ function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Ar
                                 if nbr_poss_i == 0 # Aucune possibilité pour le noeud i alors qu'il n'est pas saturé, donc erreur
                                     #@show nbr_ponts[i], i
                                     affich("    ERREUR : 0 possibilités pour " * string(cas[i, 3] - nbr_ponts[i]) * " ponts à mettre pour le noeud " * string(cas[i, :]), affich_heuris)
-                                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true, affich_heuris)
+                                    return cas, ponts, ponts_poss, nbr_ponts, testes_heuris, false, true, affich_heuris
                                 
                                 elseif nbr_poss_i <= 2 # Une unique possibilité, on la met ()
                                     ponts[i, position_poss_i] = ponts_poss[i, position_poss_i] # Avec une valeur de liens calculée
@@ -212,14 +230,14 @@ function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Ar
                                     nbr_ponts[i] += ponts_poss[i, position_poss_i] # On a ajouté un pont au noeud i
                                     nbr_ponts[position_poss_i] += ponts_poss[i, position_poss_i] # Et on a ajouté un pont au noeud position_poss_i
                                     
-                                    ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, affich_ponts_poss) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
+                                    ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, testes_heuris, affich_ponts_poss) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
                                     ajout = true # Pour bien recommencer le while
                                     affich("    AJOUT : unique possibilité pour le noeud " * string(cas[i, :]), affich_heuris)
                                 end
 
                                 if cas[i, 3] - nbr_ponts[i] > 2 || cas[i, 3] - nbr_ponts[i] > cas[position_poss_i, 3] # Une unique possibilité pour mettre plus de deux ponts, erreur
                                     affich("    ERREUR : " * string(cas[i, 3] - nbr_ponts[i]) * " ponts à mettre pour le noeud " * string(cas[i, :]) * " avec 2 ou " * string(cas[position_poss_i, 3]) * " possibilités", affich_heuris)
-                                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true, affich_heuris)
+                                    return cas, ponts, ponts_poss, nbr_ponts, testes_heuris, false, true, affich_heuris
                                 end
                             end
 
@@ -234,7 +252,7 @@ function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Ar
                                         ponts[j, i] = ponts_poss[i, j]
                                         nbr_ponts[i] += ponts_poss[i, j] # On a ajouté un pont au noeud i
                                         nbr_ponts[j] += ponts_poss[i, j] # Et on a ajouté un pont au noeud j
-                                        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, affich_ponts_poss) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
+                                        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, testes_heuris, affich_ponts_poss) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
                                         ajout = true # Pour bien recommencer le while
                                         
                                         #@show cas[i, 3] - nbr_ponts[i]
@@ -245,38 +263,69 @@ function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Ar
 
                     elseif (cas[i, 3] < nbr_ponts[i]) # Surcharge sur le noeud i : erreur
                         affich(string("    ERREUR  : " * nbr_ponts[i]) * " ponts pour le noeud " * string(cas[i, :]) * " de capacité " * string(cas[i, 3]), affich_heuris)
-                        return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true, affich_heuris)                
+                        return cas, ponts, ponts_poss, nbr_ponts, testes_heuris, false, true, affich_heuris
                     end
                 end
                 affich("    Fin de while", affich_heuris)
             end
         
         
-        return cas, ponts, ponts_poss, nbr_ponts, true, false
-        # Est-ce qu'on est arrivé au bout ???
+        
+        # Est-ce qu'on est arrivé au bout ??? Est-ce qu'on force ???
+            solve = true
+            pos_non_sat = 0
             for i in 1:n
-                if nbr_ponts[i] == cas[i, 3] # Tous les ponts sont faits
-                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, true, false, affich_heuris)
+                if nbr_ponts[i] < cas[i, 3] # Tous les ponts sont faits ?
+                    solve = false
+                    pos_non_sat = i
+                    break
                 end
             end
-            """
-        # Sinon, on essaie de forcer une possibilité
-            position_poss_force = 0
-            for i in 1:n
-                if (cas[i, 3] > nbr_ponts[i]) # On vérifie que le noeud n'est pas déjà saturé
-                    for j in i+1:n
-                        if ponts_poss[i,j] > 0 && ponts[i, j]
-                            #ponts[i, j] = 
-                        end
+
+            if solve
+                return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, false, affich_heuris)
+            else
+                # Sinon, on essaie de forcer une possibilité
+                    ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts, testes_heuris, affich_ponts_poss) # Calcul des possibilités, au cazou
+                    j = 1
+                    while ponts_poss[pos_non_sat,j] == 0  &&  j <= n+1  &&  testes_heuris[pos_non_sat, j] != 0 # On n'est pas censé boucler ici, en principe...
+                        j += 1    
                     end
-                end
+
+                    if j == n+1
+                        println("   Problème de saturation dans l'heuristique !")
+                    
+                    else
+                        ponts[pos_non_sat,j] += 1 # On force une seule possibilité, pour voir
+                        nbr_ponts[pos_non_sat] += 1 # On la compte
+                        nbr_ponts[j] += 1
+
+                        # Puis on résout, et on voit si on obtient une erreur
+                        @show(cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, erreur, affich_heuris)
+                        cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, erreur, affich_heuris = heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, false, affich_heuris)
+                        
+                        if erreur # si oui on revient sur nos pas
+                            ponts[pos_non_sat,j] -= 1 # On enlève la possibilité puisqu'elle a mené à une erreur
+                            nbr_ponts[pos_non_sat] -= 1
+                            nbr_ponts[j] -= 1
+                            ponts_poss[pos_non_sat,j] = 0
+                            testes_heuris[pos_non_sat, j] = 0
+                            testes_heuris[j, pos_non_sat] = 0
+                        end
+
+                        #Si non on a gagné
+                        return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, erreur, affich_heuris)
+                    end
+                
+                        
+                    
             end
-            """
+        
     end
 end
 
 
-function ponts_poss_calc(cas::Array{Int, 2}, ponts::Array{Int, 2}, nbr_ponts::Array{Int, 1}, affich_ponts_poss::Bool) # Remplissage de ponts_poss
+function ponts_poss_calc(cas::Array{Int, 2}, ponts::Array{Int, 2}, nbr_ponts::Array{Int, 1}, testes_heuris::Array{Int, 2}, affich_ponts_poss::Bool) # Remplissage de ponts_poss
     affich("\n    APPEL : ponts_poss_calc", affich_ponts_poss)
     ponts_poss = zeros(Int, n, n)
 
@@ -286,7 +335,7 @@ function ponts_poss_calc(cas::Array{Int, 2}, ponts::Array{Int, 2}, nbr_ponts::Ar
                 #affich("ponts_poss_calc : non saturation", affich_ponts_poss)
 
                 if (cas[i,1] == cas[j,1]) || (cas[i,2] == cas[j,2]) # Si même abscisse ou même ordonnée, pont possible (pas de diagonale)
-                    affich("        Pont possible pour les noeuds : " * string(cas[i, :]) * " et " * string(cas[j, :]), affich_ponts_poss)
+                    affich("        Pont possible pour les noeuds : " * string(cas[i, :]) * " et " * string(cas[j, :]) * " de valeur max = " * string(min(cas[j,3] - nbr_ponts[j], cas[i,3] - nbr_ponts[i], 2 - ponts[i, j], 2)), affich_ponts_poss)
                     
                     if arete_possible(cas, ponts, i, j, false) # True : le passage est libre ! False : il y aurait croisement
                         ponts_poss[i, j] = min(cas[j,3] - nbr_ponts[j], cas[i,3] - nbr_ponts[i], 2 - ponts[i, j], 2) # Pont de taille <= 2 et allant jusqu'à la capacité minimale des deux encore disponible
@@ -294,6 +343,8 @@ function ponts_poss_calc(cas::Array{Int, 2}, ponts::Array{Int, 2}, nbr_ponts::Ar
                     end
                 end
             end
+            ponts_poss[i, j] = min(ponts_poss[i, j], testes_heuris[i, j])
+            ponts_poss[j, i] = min(ponts_poss[i, j], testes_heuris[i, j])
         end
     end
     affich("    FIN : ponts_poss_calc\n", affich_ponts_poss)
@@ -304,15 +355,12 @@ end
 # True : le passage est libre ! False : il y aurait croisement
 function arete_possible(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int, affich_arete_poss::Bool)
     affich("\n        APPEL : arete_possible", affich_arete_poss)
-    x_k = cas[k, 1]
-    y_k = cas[k, 2]
-    x_l = cas[l, 1]
-    y_l = cas[l, 2]
 
-    x_1 = min(x_k, x_l)
-    y_1 = min(y_k, y_l)
-    x_2 = max(x_k, x_l)
-    y_2 = max(y_k, y_l)
+    x_1 = min(cas[k, 1], cas[l, 1])
+    y_1 = min(cas[k, 2], cas[l, 2])
+    
+    x_2 = max(cas[k, 1], cas[l, 1])
+    y_2 = max(cas[k, 2], cas[l, 2])
     
     n = size(cas, 1)
     
@@ -324,95 +372,74 @@ function arete_possible(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int
 
     if x_1 == x_2
         for i in 1:n
+            # Un noeud sur le chemin
+            if cas[i, 1] == x_1  &&  y_1 < cas[i, 2]  &&  cas[i, 2] < y_2
+                affich("            Croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]), affich_arete_poss)
+                affich("        FIN : arete_possible\n", affich_arete_poss)
+                return false
+            end
+
             for j in i+1:n
+                # L'autre noeud sur le chemin
+                if cas[j, 1] == x_1  &&  y_1 < cas[j, 2]  &&  cas[j, 2] < y_2  
+                    affich("            Croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]), affich_arete_poss)
+                    affich("        FIN : arete_possible\n", affich_arete_poss)
+                    return false
+                end
+
+
                 if ponts[i, j] >= 1 # On regarde parmi les connexions
-                    # Premier cas : toutes inégalités strictes
                     if (min(cas[i, 1], cas[j, 1]) < x_1)  &&  (max(cas[i, 1], cas[j, 1]) > x_2)
-                        if cas[i, 2] == cas[j, 2]  &&  min(cas[i, 2], cas[j, 2]) > y_1 && max(cas[i, 2], cas[j, 2]) < y_2 #on a croisement !
+                        if cas[i, 2] == cas[j, 2]  &&  y_1 < min(cas[i, 2], cas[j, 2]) && max(cas[i, 2], cas[j, 2]) < y_2 #on a croisement !
                             affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
                             affich("            Croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " avec " * string(cas[i, :]) * " <-> " * string(cas[j, :]), affich_arete_poss)
                             affich("        FIN : arete_possible\n", affich_arete_poss)
                             return false
-                        else
-                            affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
-                            affich("        FIN : arete_possible\n", affich_arete_poss)
-                            return true
                         end
                     end
-
-                    # Un noeud sur le chemin
-                    if cas[i, 1] == x_1  &&  cas[i, 2] < y_2  &&  cas[i, 2] > y_1
-                        affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
-                        affich("            Croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]), affich_arete_poss)
-                        affich("        FIN : arete_possible\n", affich_arete_poss)
-                        return false
-                    end
-
-                    # L'autre noeud sur le chemin
-                    if cas[j, 1] == x_1  &&  cas[j, 2] < y_2  &&  cas[j, 2] > y_1
-                        affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
-                        affich("            Croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]), affich_arete_poss)
-                        affich("        FIN : arete_possible\n", affich_arete_poss)
-                        return false
-                    end
-
-                    affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
-                    affich("        FIN : arete_possible\n", affich_arete_poss)
-                    return true
-                    
                 end
             end
         end
-
-        affich("            Croise-t-on une autre arête ? Non, il n'en existe pas pour le moment", affich_arete_poss)
+        
+        affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
         affich("        FIN : arete_possible\n", affich_arete_poss)
-        return true # Aucune connexion
+        return true
+
     end
 
     if y_1 == y_2
         for i in 1:n
+            # Un noeud sur le chemin
+            if cas[i, 2] == y_1  &&  x_1 < cas[i, 1]  &&  cas[i, 1] < x_2
+                affich("            Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]), affich_arete_poss)
+                affich("        FIN : arete_possible\n", affich_arete_poss)
+                return false
+            end
+
             for j in i+1:n
+                # L'autre noeud sur le chemin
+                if cas[j, 1] == y_1  &&  x_1 < cas[j, 1]  &&  cas[j, 1] < x_2
+                    affich("            Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]), affich_arete_poss)
+                    affich("        FIN : arete_possible\n", affich_arete_poss)
+                    return false
+                end
+
                 if ponts[i, j] >= 1 # On regarde parmi les connexions
                     # Premier cas : toutes inégalités strictes
-                    if min(cas[i, 2], cas[j, 2]) < y_1 && max(cas[i, 2], cas[j, 2]) > y_2
-                        if min(cas[i, 1], cas[j, 1]) > x_1 && max(cas[i, 1], cas[j, 1]) < x_2 #on a croisement !
+                    if min(cas[i, 2], cas[j, 2]) < y_1 && max(cas[i, 2], cas[j, 2]) > y_1
+                        if x_1 < min(cas[i, 1], cas[j, 1]) && max(cas[i, 1], cas[j, 1]) < x_2 #on a croisement !
                             affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
                             affich("            Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " avec " * string(cas[i, :]) * " <-> " * string(cas[j, :]), affich_arete_poss)
                             affich("        FIN : arete_possible\n", affich_arete_poss)
                             return false
-                        else
-                            affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
-                            affich("        FIN : arete_possible\n", affich_arete_poss)
-                            return true
                         end
-                    end
-                    
-                    # Un noeud sur le chemin
-                    if cas[i, 2] == y_1  &&  cas[i, 1] < x_2  &&  cas[i, 1] > x_1
-                        affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
-                        affich("            Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]), affich_arete_poss)
-                        affich("        FIN : arete_possible\n", affich_arete_poss)
-                        return false
-                    end
-
-                    # L'autre noeud sur le chemin
-                    if cas[j, 1] == x_1  &&  cas[j, 1] < x_2  &&  cas[j, 1] > x_1
-                        affich("            Croise-t-on une autre arête ? Oui", affich_arete_poss)
-                        affich("            Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]), affich_arete_poss)
-                        affich("        FIN : arete_possible\n", affich_arete_poss)
-                        return false
-
-                    else
-                        affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
-                        affich("        FIN : arete_possible\n", affich_arete_poss)
-                        return true
                     end
                 end
             end
         end
-        affich("            Croise-t-on une autre arête ? Non, il n'en existe pas pour le moment", affich_arete_poss)
+        affich("            Croise-t-on une autre arête ? Non", affich_arete_poss)
         affich("        FIN : arete_possible\n", affich_arete_poss)
-        return true # Aucune connexion
+        return true
     end
 
     affich("            Croise-t-on une autre arête ? Non, mais on considère une arête en diagonale, impossible", affich_arete_poss)
@@ -420,14 +447,14 @@ function arete_possible(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int
     return false # Connexion en diagonale
 end
 
-cas = t_1
+cas = t_2
 n = size(cas, 1)
-cas, ponts, ponts_poss, nbr_ponts, solve, erreur = heuristicSolve(cas, zeros(Int, n, n), zeros(Int, n, n), zeros(Int, n), false, false, true)
+cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, erreur = heuristicSolve(cas, zeros(Int, n, n), zeros(Int, n, n), zeros(Int, n), 2 * ones(Int, n, n), false, false, true)
 #for i in 1:n
 #    println(ponts_poss[i, :])
 #end
 disp_sol(ponts, cas)
-
+@show(solve)
 
 """
 Solve all the instances contained in "../data" through CPLEX and heuristics
