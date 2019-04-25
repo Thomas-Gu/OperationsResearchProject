@@ -30,29 +30,55 @@ function cplexSolve(t::Array{Int, 2})
     m = Model(with_optimizer(CPLEX.Optimizer))
 	@variable(m,connexions[1:n,1:n] >= 0, Int)
 
+
 	
+
 	# Contrainte de symétrie de la matrice des connexions
+
 	for i in 1:n
-		@constraint(m, [j in 1:n], connexions[i,j] = connexions[j,i])
+		@constraint(m, [j in 1:n], connexions[i,j] == connexions[j,i])
 	end
 
+
+
 	#Contrainte de non-connexion d'un point avec lui-même
-	@constraint(m, [j in 1:n], connexions[j,j] = 0)
+
+	@constraint(m, [j in 1:n], connexions[j,j] == 0)
+
+
 
 	# Contrainte de remplissage des capacités
-	@constraint(m, [i in 1:n], sum(connexions[i,j] for j in i:n) == t[i,3])
+"""
+	A réecrire parce qu'on ne somme pas correctement sur toutes les connexion
+	for i in 1:(n-1)
+		@constraint(m, sum(connexions[i,j] for j in (i+1):n) == t[i,3])
+	end
+"""
+
+
+	# Contrainte de nombre de ponts limité à deux
+
+	for i in 1:n
+		for j in 1:n
+			@constraint(m, connexions[i,j] <= 2)
+		end
+	end
+
 
 
 	# Contrainte de non-connexion en diagonale
+
 	for i in 1:n
 		for j in 1:n
-			if ((t[i,1] != t[j,1]) || (t[i,2] != t[j,2]))
+			if ((t[i,1] != t[j,1]) && (t[i,2] != t[j,2]))
 				@constraint(m, connexions[i,j] == 0)
 			end
 		end
 	end
 
+
 	# Contrainte de non-croisement
+"""
 	for i in 1:n
 		for j in 1:n
 			for k in 1:n
@@ -62,24 +88,23 @@ function cplexSolve(t::Array{Int, 2})
 					if ((t[i,2]==t[j,2])&&(t[k,1]==t[l,1]))
 						#on se place dans les cas où les connexions peuvent potentiellement se croiser
 						if ((t[i,1]<=t[k,1]) && (t[k,1] <= t[j,1]) && (t[k,2]<=t[i,2]) && (t[i,2]<=t[l,2]))
-							@constraint(m, (connexions[i,j]>=1)+(connexions[k,l]>=1) <= 1)
+							@constraint(m, (((connexions[i,j]>=1)||(connexions[k,l]>=1))&&(!((connexions[i,j]>=1)&&(connexions[k,l]>=1))))==true)
+						end
+					end
 				end
 			end
 		end
 	end
+"""
 
-	# Contrainte de nombre de ponts limité à deux
-	for i in 1:n
-		@constraint(m, [j in 1:n], connexions[i,j] <= 2)
-	end
 
 
 	# Contrainte de connexité
 
 	
 	# Objectif
-	@objective(m,Max,0)
 	
+	println(m)
 
     # Start a chronometer
     start = time()
@@ -90,9 +115,21 @@ function cplexSolve(t::Array{Int, 2})
     # Return:
     # 1 - true if an optimum is found
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+	# 3 - the solution in itself
+
+	solution = zeros(n,n)
+	for i in 1:n
+		for j in 1:n
+			solution[i,j] = JuMP.value(connexions[i,j])
+		end
+	end
+
+    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start, solution
     
 end
+
+trouve, temps, solution = cplexSolve(t)
+println(solution)
 
 """
 Heuristically solve an instance
