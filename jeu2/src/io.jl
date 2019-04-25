@@ -62,6 +62,7 @@ function readInputFile(inputFile::String)
 
 end
 
+#readInputFile("../data/test2.dat")
 
 """
 Read an instance resolution
@@ -69,22 +70,22 @@ Read an instance resolution
 - Argument:
 inputFile: path of the input file
 """
-function disp_sol(solution::Array{Int, 2}, cas::Array{Int, 2})
+function disp_sol(sol::Array{Int, 2}, cas::Array{Int, 2})
     
     n = size(cas, 1)
-
     X = cas[:,1]
     Y = cas[:,2]
     cap = cas[:,3]
 
     # Affichage du cas initial
-        println("-------------------")
+        
+        println("\n\n------------------------")
         
         for i in 1:n
             println("| (" * string(X[i]) * ", " * string(Y[i]) * "), Capacité = " * string(cap[i]) * " |") # Affichage sous forme de tableau
         end
 
-        println("-------------------")
+        println("------------------------")
 
         p_init = plot(X, Y, seriestype=:scatter, color = "blue")
     p = p_init
@@ -93,16 +94,10 @@ function disp_sol(solution::Array{Int, 2}, cas::Array{Int, 2})
     for i in 1:n
         for j in i+1:n
             if sol[i, j] == 1
-                println("simple")
-                @show X[i], Y[i]
-                @show X[j], Y[j]
-                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "black", lw = 2)
+                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "blue", lw = 2)
 
             elseif sol[i, j] == 2
-                println("double")
-                @show X[i], Y[i]
-                @show X[j], Y[j]
-                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "black", lw = 4)
+                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "blue", lw = 4)
             end
         end
     end
@@ -111,8 +106,6 @@ function disp_sol(solution::Array{Int, 2}, cas::Array{Int, 2})
     display(p)
 
 end
-
-# disp_sol(sol, t)
 
 
 """

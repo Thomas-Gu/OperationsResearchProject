@@ -16,7 +16,18 @@ t = [
 	4 1 3 ;
 	1 4 2 ;
 	4 4 4 ]
-	
+
+t_1 = [
+    1 1 2 ;
+    1 3 2 ;
+    7 1 3 ;
+    5 3 3 ;
+    2 5 2 ;
+    4 5 4 ;
+    5 6 2 ;
+    2 7 2 ;
+    4 7 6 ;
+    7 7 4 ]
 
 """
 Solve an instance with CPLEX
@@ -128,8 +139,8 @@ function cplexSolve(t::Array{Int, 2})
     
 end
 
-trouve, temps, solution = cplexSolve(t)
-println(solution)
+# trouve, temps, solution = cplexSolve(t)
+# println(solution)
 
 
 
@@ -142,81 +153,147 @@ println(solution)
 Heuristically solve an instance
 """
 
-function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Array{Int, 2}, nbr_ponts::Array{Int, 1}, solve::Bool, erreur::bool)
+function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Array{Int, 2}, nbr_ponts::Array{Int, 1}, solve::Bool, erreur::Bool)
+    println("\nAPPEL :heuristicSolve")
     if solve # On a réolu le problème
-        return(ponts)
-    end
-        ###    
+        return cas, ponts, ponts_poss, nbr_ponts, true, false
+        
     else   
-        n = size(t, 1) # Nombre de noeuds à connecter
-        ponts_poss = ponts_poss_calc(cas, nbr_ponts)
+        # Temporaire !
+        if erreur
+            return cas, ponts, ponts_poss, nbr_ponts, false, true
+        end
 
-        # Si qu'une solution, on la met, si pas de solution, erreur
+        n = size(cas, 1) # Nombre de noeuds à connecter
+        @show n
+        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts) # Calcul des possibilités
         for i in 1:n
-            if (cas[i, 3] < nbr_ponts[i]) # On vérifie que le noeud n'est pas déjà saturé
-                position_poss_i = 0
-                unique = true
-                nbr_poss_i = 0
-                for j in 1:n
-                    if ponts_poss[i, j] > 0
-                        if nbr_poss_i >= 1
-                            unique = false # repère si on avait déjà changé une fois (i.e. on n'a plusieurs ponts possibles avec plusieurs autres noeuds)
-                        position_poss_i = j
-                        nbr_poss_i = nbr_poss_i + ponts_poss[i, j]
+            println(ponts_poss[i, :])
+        end
+        ajout = true # Pour le premier passage
+
+        # Est ce qu'on peut ajouter un pont certain ?
+            while ajout # Tant qu'on a réussi à en jouter lors du passage précédent, on continue
+                ajout = false # Au cas où on n'en ajoute pas
+                for i in 1:n # On parcourt tous les noeuds
+                    #@show i, nbr_ponts[i]
+                    if (cas[i, 3] > nbr_ponts[i]) # On vérifie que le noeud n'est pas déjà saturé
+                        #println("Noeud " *string(i) * " non saturé")
+                        # Ajout/détection d'erreur en cas de possibilité unique
+                            position_poss_i = 0
+                            unique = true
+                            nbr_poss_i = 0
+                            for j in 1:n
+                                if ponts_poss[i, j] > 0
+                                    if nbr_poss_i >= 1
+                                        unique = false # repère si on avait déjà changé une fois (i.e. on n'a plusieurs ponts possibles avec plusieurs autres noeuds)
+                                    end
+                                    position_poss_i = j
+                                    nbr_poss_i = nbr_poss_i + ponts_poss[i, j]
+                                end
+                            end
+
+                            if unique # ie on a de ponts possible qu'avec un (ou aucun) noeud, mais pas plusieurs
+                                if nbr_poss_i == 0 # Aucune possibilité pour le noeud i alors qu'il n'est pas saturé, donc erreur
+                                    @show nbr_ponts[i], i
+                                    println("ERREUR : 0 possibilités pour " * string(cas[i, 3] - nbr_ponts[i]) * " ponts à mettre pour le noeud " * string(cas[i, :]))
+                                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true)
+                                
+                                elseif nbr_poss_i <= 2 # Une unique possibilité, on la met ()
+                                    ponts[i, position_poss_i] = ponts_poss[i, position_poss_i] # Avec une valeur de liens calculée
+                                    ponts[position_poss_i, i] = ponts_poss[i, position_poss_i] # symétrie
+                                    nbr_ponts[i] += 1 # On a ajouté un pont au noeud i
+                                    nbr_ponts[position_poss_i] += 1 # Et on a ajouté un pont au noeud position_poss_i
+                                    ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
+                                    ajout = true # Pour bien recommencer le while
+                                    println("AJOUT : unique possibilité pour le noeud " * string(cas[i, :]))
+                                end
+
+                                if cas[i, 3] - nbr_ponts[i] > 2 || cas[i, 3] - nbr_ponts[i] > cas[position_poss_i, 3] # Une unique possibilité pour mettre plus de deux ponts, erreur
+                                    println("ERREUR : " * string(cas[i, 3] - nbr_ponts[i]) * " ponts à mettre pour le noeud " * string(cas[i, :]) * " avec 2 ou " * string(cas[position_poss_i, 3]) * " possibilités")
+                                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true)
+                                end
+                            end
+
+                        # Ajout en cas de possibilités saturées
+                            if sum(ponts_poss[i, j] for j in 1:n) == cas[i, 3] - nbr_ponts[i] # Le noeud est saturé, les possibilités sont donc nécessaires.
+                                for j in 1:n
+                                    @show cas[j, :]
+                                    @show ponts_poss[i, j]
+                                    if ponts_poss[i, j] >= 1
+                                        ponts[i, j] = ponts_poss[i, j]
+                                        ponts[j, i] = ponts_poss[i, j]
+                                        nbr_ponts[i] += ponts_poss[i, j] # On a ajouté un pont au noeud i
+                                        nbr_ponts[j] += ponts_poss[i, j] # Et on a ajouté un pont au noeud j
+                                        ponts_poss = ponts_poss_calc(cas, ponts, nbr_ponts) # Calcul des possibilités (renouvelé à chaque fois qu'il y a modification)
+                                        ajout = true # Pour bien recommencer le while
+                                        println("AJOUT : possibilités saturées pour le noeud " * string(cas[i, :]))
+                                        
+                                        @show cas[i, 3] - nbr_ponts[i]
+                                    end
+                                end
+                            end
+
+
+                    elseif (cas[i, 3] < nbr_ponts[i]) # Surcharge sur le noeud i : erreur
+                        println(string("ERREUR  : " * nbr_ponts[i]) * " ponts pour le noeud " * string(cas[i, :]) * " de capacité " * string(cas[i, 3]))
+                        return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, false, true)                
                     end
                 end
+                println("fin de while")
+            end
 
-                if unique # ie on a de ponts possible qu'avec un (ou aucun) noeud, mais pas plusieurs
-                    if nbr_poss_i == 0 # Aucune possibilité pour le noeud i alors qu'il n'est pas saturé, donc erreur
-                        return cas, ponts, ponts_poss, nbr_ponts, false, true
-                    
-                    elseif nbr_poss_i <= 2 # Une unique possibilité, on la met ()
-                        ponts[i, position_poss_i] = ponts_poss[i, position_poss_i] # Avec une valeur de liens calculée
-                    else # Une unique possibilité pour mettre plus de deux ponts, erreur
-                        return cas, ponts, ponts_poss, nbr_ponts, false, true
+        # Est-ce qu'on est arrivé au bout ???
+            for i in 1:n
+                if nbr_ponts[i] == cas[i, 3] # Tous les ponts sont faits
+                    return heuristicSolve(cas, ponts, ponts_poss, nbr_ponts, true, false)
+                end
+            end
+            """
+        # Sinon, on essaie de forcer une possibilité
+            position_poss_force = 0
+            for i in 1:n
+                if (cas[i, 3] > nbr_ponts[i]) # On vérifie que le noeud n'est pas déjà saturé
+                    for j in i+1:n
+                        if ponts_poss[i,j] > 0 && ponts[i, j]
+                            #ponts[i, j] = 
+                        end
                     end
                 end
             end
-        end
-
-        # Sinon, on essaie de forcer une possibilité
-
-
-
-
-
-
-
-        solve = true
+            """
     end
 end
 
 
-function ponts_poss_calc(cas::Array{Int, 2}, nbr_ponts::Array{Int, 1}) # Remplissage de ponts_poss
-    
+function ponts_poss_calc(cas::Array{Int, 2}, ponts::Array{Int, 2}, nbr_ponts::Array{Int, 1}) # Remplissage de ponts_poss
+    println("\nAPPEL : ponts_poss_calc")
     ponts_poss = zeros(Int, n, n)
 
     for i in 1:n
         for j in i+1:n
-            if (cas[i, 3] < nbr_ponts[i]) && (cas[j, 3] < nbr_ponts[j]) #Les noeuds ne sont pas saturés
-
-                # Ajouter le non croisement !
+            if (cas[i, 3] > nbr_ponts[i]) && (cas[j, 3] > nbr_ponts[j]) && ponts[i, j] < 2 #Les noeuds ne sont pas saturés, le pont non plus
+                #println("ponts_poss_calc : non saturation")
 
                 if (cas[i,1] == cas[j,1]) || (cas[i,2] == cas[j,2]) # Si même abscisse ou même ordonnée, pont possible (pas de diagonale)
-                    if test_non_croisement
-                        ponts_poss[i, j] = min(cas[j,3] - nbr_ponts[j], cas[i,3] - nbr_ponts[i], 2) # Pont de taille <= 2 et allant jusqu'à la capacité minimale des deux encore disponible
+                    println("ponts_poss_calc pont possible pour les noeuds : " * string(cas[i, :]) * " et " * string(cas[j, :]))
+                    println("Croise-t-on une autre arrête ? " * string(test_non_croisement(cas, ponts, i, j)))
+                    
+                    if test_non_croisement(cas, ponts, i, j) #Il n'y a pas croisement, c'est bon !
+                        ponts_poss[i, j] = min(cas[j,3] - nbr_ponts[j], cas[i,3] - nbr_ponts[i], 2 - ponts[i, j]) # Pont de taille <= 2 et allant jusqu'à la capacité minimale des deux encore disponible
                         ponts_poss[j, i] = ponts_poss[i, j] # Symétrique
                     end
                 end
             end
         end
     end
-
+    println("FIN : ponts_poss_calc\n")
     return ponts_poss
 end
 
 
 function test_non_croisement(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int)
+    println("\nAPPEL : test_non_croisement")
     x_k = cas[k, 1]
     y_k = cas[k, 2]
     x_l = cas[l, 1]
@@ -227,7 +304,7 @@ function test_non_croisement(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l
     x_2 = max(x_k, x_l)
     y_2 = max(y_k, y_l)
     
-    n = size(t, 1)
+    n = size(cas, 1)
     
     if x_1 == x_2 && y_1 == y_2 #Point identique
         return false
@@ -236,49 +313,95 @@ function test_non_croisement(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l
     if x_1 == x_2
         for i in 1:n
             for j in i+1:n
-                if pont[i, j] >= 1 # On regarde parmi les connexions
-                    if min(cas[i, 1], cas[j, 1]) <= x_1 && max(cas[i, 1], cas[j, 1]) >= x_2
-                        if min(cas[i, 2], cas[j, 2]) >= y_1 && max(cas[i, 2], cas[j, 2]) <= y_2 #on a croisement !
+                if ponts[i, j] >= 1 # On regarde parmi les connexions
+                    # Premier cas : toutes inégalités strictes
+                    if (min(cas[i, 1], cas[j, 1]) < x_1)  &&  (max(cas[i, 1], cas[j, 1]) > x_2)
+                        if cas[i, 2] == cas[j, 2]  &&  min(cas[i, 2], cas[j, 2]) > y_1 && max(cas[i, 2], cas[j, 2]) < y_2 #on a croisement !
+                            println("Pas croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " avec " * string(cas[i, :]) * " <-> " * string(cas[j, :]))
+                            println("FIN : test_non_croisement\n")
                             return false
                         else
+                            println("FIN : test_non_croisement\n")
                             return true
                         end
-
-                    else
-                        return true
                     end
+
+                    # Un noeud sur le chemin
+                    if cas[i, 1] == x_1  &&  cas[i, 2] < y_2  &&  cas[i, 2] > y_1
+                        println("Pas croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]))
+                        println("FIN : test_non_croisement\n")
+                        return false
+                    end
+
+                    # L'autre noeud sur le chemin
+                    if cas[j, 1] == x_1  &&  cas[j, 2] < y_2  &&  cas[j, 2] > y_1
+                        println("Pas croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]))
+                        println("FIN : test_non_croisement\n")
+                        return false
+                    end
+
+                    println("FIN : test_non_croisement\n")
+                    return true
+                    
                 end
             end
         end
-
+        println("FIN : test_non_croisement\n")
         return true # Aucune connexion
     end
 
     if y_1 == y_2
         for i in 1:n
             for j in i+1:n
-                if pont[i, j] >= 1 # On regarde parmi les connexions
-                    if min(cas[i, 2], cas[j, 2]) <= y_1 && max(cas[i, 2], cas[j, 2]) >= y_2
-                        if min(cas[i, 1], cas[j, 1]) >= x_1 && max(cas[i, 1], cas[j, 1]) <= x_2 #on a croisement !
+                if ponts[i, j] >= 1 # On regarde parmi les connexions
+                    # Premier cas : toutes inégalités strictes
+                    if min(cas[i, 2], cas[j, 2]) < y_1 && max(cas[i, 2], cas[j, 2]) > y_2
+                        if min(cas[i, 1], cas[j, 1]) > x_1 && max(cas[i, 1], cas[j, 1]) < x_2 #on a croisement !
+                            println("Croisement de l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " avec " * string(cas[i, :]) * " <-> " * string(cas[j, :]))
+                            println("FIN : test_non_croisement\n")
                             return false
                         else
+                            println("FIN : test_non_croisement\n")
                             return true
                         end
+                    end
+                    
+                    # Un noeud sur le chemin
+                    if cas[i, 2] == y_1  &&  cas[i, 1] < x_2  &&  cas[i, 1] > x_1
+                        println("Pas croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[i, :]))
+                        println("FIN : test_non_croisement\n")
+                        return false
+                    end
+
+                    # L'autre noeud sur le chemin
+                    if cas[j, 1] == x_1  &&  cas[j, 1] < x_2  &&  cas[j, 1] > x_1
+                        println("Pas croisement : l'arête " * string(cas[k, :]) * " <-> " * string(cas[l, :]) * " passe par le noeud " * string(cas[j, :]))
+                        println("FIN : test_non_croisement\n")
+                        return false
 
                     else
+                        println("FIN : test_non_croisement\n")
                         return true
                     end
                 end
             end
         end
-
+        println("FIN : test_non_croisement\n")
         return true # Aucune connexion
     end
 
+    println("FIN : test_non_croisement\n")
     return false # Connexion en diagonale
 end
 
-
+cas = t_1
+n = size(cas, 1)
+print(n)
+cas, ponts, ponts_poss, nbr_ponts, solve, erreur = heuristicSolve(cas, zeros(Int, n, n), zeros(Int, n, n), zeros(Int, n), false, false)
+#for i in 1:n
+#    println(ponts_poss[i, :])
+#end
+disp_sol(ponts, cas)
 
 
 """
