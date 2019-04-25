@@ -1,9 +1,10 @@
 # This file contains functions related to reading, writing and displaying a grid and experimental results
 
 using JuMP
+#import GR
 using Plots
-import GR
-
+gr() #package for plotting
+default(leg=false)
 """
 On suppose que le plateau est donné sous la forme d'un Array de n lignes (nombre de points) et de 3 colonnes
 Colonne1 : abscisse
@@ -16,7 +17,12 @@ t = [
 	4 1 3 ;
 	1 4 2 ;
     4 4 4 ]
-    
+
+sol = [
+    0 1 0 0 ;
+    1 0 0 2 ;
+    0 0 0 2 ;
+    0 2 2 0 ]
 
 
 
@@ -33,17 +39,26 @@ function readInputFile(inputFile::String)
 
     data = readlines(datafile)
     close(datafile)
+    n = size(data, 1)
 
-    println("-------------------")
-    for line in data
+    X = zeros(Int, n)
+    Y = zeros(Int, n)
+
+    println("------------------------")
+    for i in 1:n
+        line = data[i]
         point = split(line, " ") # Crée un tableau de la forme ["2", "1", "1"]
         x = parse(Int, point[1])
         y = parse(Int, point[2])
         cap = parse(Int, point[3])
-        plot(x, y, color = "blue", linewidth = 2.0, linestyle = "o")
-        println("| " * line * " |") # Affichage sous forme de tableau
+
+        X[i] = x
+        Y[i] = y
+        
+        println("| (" * string(x) * ", " * string(y) * "), Capacité = " * string(cap) * " |") # Affichage sous forme de tableau
     end
-    println("-------------------")
+    println("------------------------")
+    display(plot(X, Y, seriestype=:scatter, color = "blue"))
 
 end
 
@@ -54,27 +69,50 @@ Read an instance resolution
 - Argument:
 inputFile: path of the input file
 """
-function readInputFile(solution::Array{Int})
+function disp_sol(solution::Array{Int, 2}, cas::Array{Int, 2})
+    
+    n = size(cas, 1)
 
-    # Open the input file
-    datafile = open(inputFile)
+    X = cas[:,1]
+    Y = cas[:,2]
+    cap = cas[:,3]
 
-    data = readlines(datafile)
-    close(datafile)
+    # Affichage du cas initial
+        println("-------------------")
+        
+        for i in 1:n
+            println("| (" * string(X[i]) * ", " * string(Y[i]) * "), Capacité = " * string(cap[i]) * " |") # Affichage sous forme de tableau
+        end
 
-    println("-------------------")
-    for line in data
-        point = split(line, " ") # Crée un tableau de la forme ["2", "1", "1"]
-        x = parse(Int, point[1])
-        y = parse(Int, point[2])
-        cap = parse(Int, point[3])
-        plot(x, y, color = "blue", linewidth = 2.0, linestyle = "o")
-        println("| " * line * " |") # Affichage sous forme de tableau
+        println("-------------------")
+
+        p_init = plot(X, Y, seriestype=:scatter, color = "blue")
+    p = p_init
+
+    # Affichage de la solution
+    for i in 1:n
+        for j in i+1:n
+            if sol[i, j] == 1
+                println("simple")
+                @show X[i], Y[i]
+                @show X[j], Y[j]
+                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "black", lw = 2)
+
+            elseif sol[i, j] == 2
+                println("double")
+                @show X[i], Y[i]
+                @show X[j], Y[j]
+                p = plot!(p, [X[i], X[j]], [Y[i], Y[j]], color = "black", lw = 4)
+            end
+        end
     end
-    println("-------------------")
+       
+    
+    display(p)
 
 end
 
+# disp_sol(sol, t)
 
 
 """
