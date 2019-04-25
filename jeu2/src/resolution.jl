@@ -131,15 +131,155 @@ end
 trouve, temps, solution = cplexSolve(t)
 println(solution)
 
+
+
+
+
+
+
+
 """
 Heuristically solve an instance
 """
-function heuristicSolve()
 
-    # TODO
-    println("In file resolution.jl, in method heuristicSolve(), TODO: fix input and output, define the model")
+function heuristicSolve(cas::Array{Int, 2}, ponts::Array{Int, 2}, ponts_poss::Array{Int, 2}, nbr_ponts::Array{Int, 1}, solve::Bool, erreur::bool)
+    if solve # On a réolu le problème
+        return(ponts)
+    end
+        ###    
+    else   
+        n = size(t, 1) # Nombre de noeuds à connecter
+        ponts_poss = ponts_poss_calc(cas, nbr_ponts)
+
+        # Si qu'une solution, on la met, si pas de solution, erreur
+        for i in 1:n
+            if (cas[i, 3] < nbr_ponts[i]) # On vérifie que le noeud n'est pas déjà saturé
+                position_poss_i = 0
+                unique = true
+                nbr_poss_i = 0
+                for j in 1:n
+                    if ponts_poss[i, j] > 0
+                        if nbr_poss_i >= 1
+                            unique = false # repère si on avait déjà changé une fois (i.e. on n'a plusieurs ponts possibles avec plusieurs autres noeuds)
+                        position_poss_i = j
+                        nbr_poss_i = nbr_poss_i + ponts_poss[i, j]
+                    end
+                end
+
+                if unique # ie on a de ponts possible qu'avec un (ou aucun) noeud, mais pas plusieurs
+                    if nbr_poss_i == 0 # Aucune possibilité pour le noeud i alors qu'il n'est pas saturé, donc erreur
+                        return cas, ponts, ponts_poss, nbr_ponts, false, true
+                    
+                    elseif nbr_poss_i <= 2 # Une unique possibilité, on la met ()
+                        ponts[i, position_poss_i] = ponts_poss[i, position_poss_i] # Avec une valeur de liens calculée
+                    else # Une unique possibilité pour mettre plus de deux ponts, erreur
+                        return cas, ponts, ponts_poss, nbr_ponts, false, true
+                    end
+                end
+            end
+        end
+
+        # Sinon, on essaie de forcer une possibilité
+
+
+
+
+
+
+
+        solve = true
+    end
+end
+
+
+function ponts_poss_calc(cas::Array{Int, 2}, nbr_ponts::Array{Int, 1}) # Remplissage de ponts_poss
     
-end 
+    ponts_poss = zeros(Int, n, n)
+
+    for i in 1:n
+        for j in i+1:n
+            if (cas[i, 3] < nbr_ponts[i]) && (cas[j, 3] < nbr_ponts[j]) #Les noeuds ne sont pas saturés
+
+                # Ajouter le non croisement !
+
+                if (cas[i,1] == cas[j,1]) || (cas[i,2] == cas[j,2]) # Si même abscisse ou même ordonnée, pont possible (pas de diagonale)
+                    if test_non_croisement
+                        ponts_poss[i, j] = min(cas[j,3] - nbr_ponts[j], cas[i,3] - nbr_ponts[i], 2) # Pont de taille <= 2 et allant jusqu'à la capacité minimale des deux encore disponible
+                        ponts_poss[j, i] = ponts_poss[i, j] # Symétrique
+                    end
+                end
+            end
+        end
+    end
+
+    return ponts_poss
+end
+
+
+function test_non_croisement(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int)
+    x_k = cas[k, 1]
+    y_k = cas[k, 2]
+    x_l = cas[l, 1]
+    y_l = cas[l, 2]
+
+    x_1 = min(x_k, x_l)
+    y_1 = min(y_k, y_l)
+    x_2 = max(x_k, x_l)
+    y_2 = max(y_k, y_l)
+    
+    n = size(t, 1)
+    
+    if x_1 == x_2 && y_1 == y_2 #Point identique
+        return false
+    end
+
+    if x_1 == x_2
+        for i in 1:n
+            for j in i+1:n
+                if pont[i, j] >= 1 # On regarde parmi les connexions
+                    if min(cas[i, 1], cas[j, 1]) <= x_1 && max(cas[i, 1], cas[j, 1]) >= x_2
+                        if min(cas[i, 2], cas[j, 2]) >= y_1 && max(cas[i, 2], cas[j, 2]) <= y_2 #on a croisement !
+                            return false
+                        else
+                            return true
+                        end
+
+                    else
+                        return true
+                    end
+                end
+            end
+        end
+
+        return true # Aucune connexion
+    end
+
+    if y_1 == y_2
+        for i in 1:n
+            for j in i+1:n
+                if pont[i, j] >= 1 # On regarde parmi les connexions
+                    if min(cas[i, 2], cas[j, 2]) <= y_1 && max(cas[i, 2], cas[j, 2]) >= y_2
+                        if min(cas[i, 1], cas[j, 1]) >= x_1 && max(cas[i, 1], cas[j, 1]) <= x_2 #on a croisement !
+                            return false
+                        else
+                            return true
+                        end
+
+                    else
+                        return true
+                    end
+                end
+            end
+        end
+
+        return true # Aucune connexion
+    end
+
+    return false # Connexion en diagonale
+end
+
+
+
 
 """
 Solve all the instances contained in "../data" through CPLEX and heuristics
