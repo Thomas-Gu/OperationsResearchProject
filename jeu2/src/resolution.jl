@@ -106,7 +106,7 @@ function cplexSolve(t::Array{Int, 2})
 
 
 	# Contrainte de non-croisement
-
+"""
 	for i in 1:n
 		for j in 1:n
 			for k in 1:n
@@ -124,7 +124,7 @@ function cplexSolve(t::Array{Int, 2})
 			end
 		end
 	end
-
+"""
 
 
 
@@ -158,7 +158,6 @@ function cplexSolve(t::Array{Int, 2})
 end
 
 trouve, temps, solution = cplexSolve(t)
-println(solution)
 disp_sol(solution, t)
 @show(solve)
 
@@ -581,3 +580,67 @@ function solveDataSet()
         end         
     end 
 end
+
+
+
+
+function exploration(ind::Int64, sommet::Int64, cas::Array{Int, 2}, ponts::Array{Float64, 2}, comp_conx::Array{Float64,1})
+	n = size(cas, 1)
+	comp_conx[sommet] = ind
+	test= true
+
+	for i in 1:n
+		if ((ponts[sommet, i] > 0)&&(comp_conx[i] == 0))
+			#i est un successeur non marqué de sommet : on va ajouter à la composante connexe courante
+			exploration(ind,i, cas, ponts, comp_conx)
+		end
+	end
+	#on a exploré la composante conenxe de sommet
+end
+	
+
+
+
+function connexifie(cas::Array{Int, 2}, ponts::Array{Float64, 2})
+"""
+Cette fonction vise à rendre connexe un graphe donné
+"""
+	n = size(cas, 1)
+	
+	
+	#chaque sommet finira dans une composante connexe identifiée par 1,2,...
+	comp_conx = zeros(n)
+	
+
+	curr_ind = Int64(0)
+	for i in 1:n
+		if comp_conx[i] == 0
+			curr_ind = curr_ind+1
+			exploration(curr_ind, i, cas, ponts, comp_conx)
+			println("on a exploré une composante connexe")
+			println(comp_conx)
+			println(curr_ind)
+		end
+	end
+	#on a identifié toutes les composantes connexes	
+	#on va tenter de connexifier le graphe si leur nobr est supérieur à 1
+
+	return curr_ind, comp_conx
+end
+
+
+
+nb_comp_conx, composantes = connexifie(t,solution)
+println("resultats")
+println(nb_comp_conx)
+println(composantes)	
+	
+		
+			
+		
+
+	
+
+
+
+
