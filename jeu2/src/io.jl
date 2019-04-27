@@ -70,7 +70,7 @@ Read an instance resolution
 - Argument:
 inputFile: path of the input file
 """
-function disp_sol(sol::Array{Int, 2}, cas::Array{Int, 2})
+function disp_sol(sol::Array{Float64, 2}, cas::Array{Int, 2})
     
     n = size(cas, 1)
     X = cas[:,1]

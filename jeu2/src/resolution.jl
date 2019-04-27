@@ -47,7 +47,7 @@ t_2 = [
 
 
 
-    """
+"""
 Solve an instance with CPLEX
 """
 function cplexSolve(t::Array{Int, 2})
@@ -77,12 +77,11 @@ function cplexSolve(t::Array{Int, 2})
 
 
 	# Contrainte de remplissage des capacités
-"""
-	A réecrire parce qu'on ne somme pas correctement sur toutes les connexion
+
 	for i in 1:(n-1)
-		@constraint(m, sum(connexions[i,j] for j in (i+1):n) == t[i,3])
+		@constraint(m, sum(connexions[i,j] for j in 1:n) == t[i,3])
 	end
-"""
+
 
 
 	# Contrainte de nombre de ponts limité à deux
@@ -107,7 +106,7 @@ function cplexSolve(t::Array{Int, 2})
 
 
 	# Contrainte de non-croisement
-"""
+
 	for i in 1:n
 		for j in 1:n
 			for k in 1:n
@@ -117,14 +116,15 @@ function cplexSolve(t::Array{Int, 2})
 					if ((t[i,2]==t[j,2])&&(t[k,1]==t[l,1]))
 						#on se place dans les cas où les connexions peuvent potentiellement se croiser
 						if ((t[i,1]<=t[k,1]) && (t[k,1] <= t[j,1]) && (t[k,2]<=t[i,2]) && (t[i,2]<=t[l,2]))
-							@constraint(m, (((connexions[i,j]>=1)||(connexions[k,l]>=1))&&(!((connexions[i,j]>=1)&&(connexions[k,l]>=1))))==true)
+							@constraint(m, min((0.3*connexions[i,j]+connexions[k,l]),(0.3*connexions[i,j]+connexions[k,l])) < 1)
+							#(((connexions[i,j]==1)||(connexions[k,l]==1))&&(!((connexions[i,j]==1)&&(connexions[k,l]==1))))==true
 						end
 					end
 				end
 			end
 		end
 	end
-"""
+
 
 
 
@@ -157,10 +157,10 @@ function cplexSolve(t::Array{Int, 2})
     
 end
 
-# trouve, temps, solution = cplexSolve(t)
-# println(solution)
-
-
+trouve, temps, solution = cplexSolve(t)
+println(solution)
+disp_sol(solution, t)
+@show(solve)
 
 
 
@@ -447,14 +447,25 @@ function arete_possible(cas::Array{Int, 2}, ponts::Array{Int, 2}, k::Int, l::Int
     return false # Connexion en diagonale
 end
 
+
+
+
+"""
 cas = t_2
 n = size(cas, 1)
 cas, ponts, ponts_poss, nbr_ponts, testes_heuris, solve, erreur = heuristicSolve(cas, zeros(Int, n, n), zeros(Int, n, n), zeros(Int, n), 2 * ones(Int, n, n), false, false, true)
 #for i in 1:n
 #    println(ponts_poss[i, :])
 #end
+
+println(ponts)
 disp_sol(ponts, cas)
 @show(solve)
+
+"""
+
+
+
 
 """
 Solve all the instances contained in "../data" through CPLEX and heuristics
